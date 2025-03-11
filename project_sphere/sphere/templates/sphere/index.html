@@ -7,6 +7,18 @@
 <body>
     <div>
         <h1>Сфера</h1>
+        <canvas id="canvas3D">Do not support</canvas>
+        <script>
+            const canvas = document.getElementById('canvas3D');
+            const ctx = canvas.getContext('2d');
+            ctx.beginPath();
+            ctx.arc(100, 90, 50, 0, 2*Math.PI);
+            ctx.fillStyle = 'blue';
+            ctx.fill();
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+        </script>
     </div>
 </body>
 </html>
