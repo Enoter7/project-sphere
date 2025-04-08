@@ -1,24 +1,189 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Геометрия</title>
-</head>
-<body>
-    <div>
-        <h1>Сфера</h1>
-        <canvas id="canvas3D">Do not support</canvas>
-        <script>
-            const canvas = document.getElementById('canvas3D');
-            const ctx = canvas.getContext('2d');
-            ctx.beginPath();
-            ctx.arc(100, 90, 50, 0, 2*Math.PI);
-            ctx.fillStyle = 'blue';
-            ctx.fill();
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 5;
-            ctx.stroke();
+<html>
+    <head>
+        <title>{{ title }}</title>
+        <meta charset="utf-8"/>
+    </head>
+    <body>
+        <form>
+            {% for city in cities|dictsort:'name' %}
+            <div>
+                <input type="radio" id={{ city.name }} name="city_start" value={{ city.name }} />
+                <label for={{ city.name }}>{{ city.name }}</label>
+            </div>
+            {% endfor %}
+            <input type="submit" />
+        </form>
+
+    <!--
+        <canvas id="canvas3D" width="2400px" height="1200px">Ваш браузер не поддерживает элементы рисования</canvas>
+        <script type="text/javascript" src="gl-matrix-min.js"></script>
+        <script id="shader-fs" type="x-shader/x-fragment">
+        // запускаем фрагментный шейдер
+            void main(void) {
+                gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+            }
         </script>
-    </div>
-</body>
+        <script id="shader-vs" type="x-shader/x-vertex">
+        // запускаем вершинный шейдер
+            attribute vec3 aVertexPosition;
+            uniform mat4 uMVMatrix;
+            uniform mat4 uPMatrix;
+            void main(void) {
+                gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            }
+        </script>
+        <script type="text/javascript">
+            var gl;  // переменная для отрисовки
+            var shaderProgram;  // переменная для шейдера
+            var vertexBuffer;   // буфер координат вершин
+            var indexBuffer;    // буфер индексов вершин
+            var angle = 0.0;  // угол поворота
+            // матрицы движения модели
+            var mvMatrix = mat4.create();
+            var pMatrix = mat4.create();
+
+            // инициализация шейдеров
+            function initShaders() {
+                var fragmentShader = getShader(gl.FRAGMENT_SHADER, "shader-fs");
+                var vertexShader = getShader(gl.VERTEX_SHADER, "shader-vs");
+
+                shaderProgram = gl.createProgram();
+
+                gl.attachShader(shaderProgram, vertexShader);
+                gl.attachShader(shaderProgram, fragmentShader);
+                gl.linkProgram(shaderProgram);
+
+                // проверка
+                if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+                    alert("Шейдеры не установились! Проверьте настройки видеокарты");
+                }
+
+                gl.useProgram(shaderProgram);
+
+                // задаём атрибуты
+                shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+                gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+                // задаём матрицы
+                shaderProgram.MVMatrix = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+                shaderProgram.ProjMatrix = gl.getUniformLocation(shaderProgram, "uPMatrix");
+            }
+
+            // инициализация матриц объекта
+            function setMatrixUniforms() {
+                gl.uniformMatrix4fv(shaderProgram.MVMatrix, false, mvMatrix);
+                gl.uniformMatrix4fv(shaderProgram.ProjMatrix, false, pMatrix);
+            }
+
+            // компиляция шейдера
+            function getShader(type, id) {
+                var source = document.getElementById(id).innerHTML;
+                var shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+
+                // проверка
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    alert("Шейдер не скомпилировался!");
+                    gl.deleteShader(shader);
+                    return null;
+                }
+                return shader;
+            }
+
+            // инициализация буфферов
+            function initBuffers() {
+                var quality = 100;   // количество точек
+                var arcs = 100;      // количество дуг
+                var radius = 1;     // радиус сферы
+                var vertices = [];  // массив координат вершин
+                var indices = [];   // массив индексов вершин
+
+                // заполняем массивы
+                for (let i = 0; i <= arcs; i++) {
+                    let angle1 = 2 * Math.PI * i / arcs;
+                    for (let j = 0; j <= quality; j++) {
+                        let angle2 = 2 * Math.PI * j / quality;
+                        vertices.push(radius * Math.cos(angle2) * Math.cos(angle1), radius * Math.sin(angle2) * Math.cos(angle1), radius * Math.sin(angle1));
+                        indices.push(j + i * quality, j + i * quality + 1);
+                    }
+                    indices.pop();
+                    indices.pop();
+                }
+                points = indices.length;
+                for (let i = 0; i <= arcs; i++) {
+                    let angle1 = 2 * Math.PI * i / arcs;
+                    for (let j = 0; j <= quality; j++) {
+                        let angle2 = 2 * Math.PI * j / quality;
+                        vertices.push(radius * Math.sin(angle2) * Math.cos(angle1), radius * Math.sin(angle1), radius * Math.cos(angle2) * Math.cos(angle1));
+                        indices.push(j + i * quality + points, j + i * quality + points + 1);
+                    }
+                    indices.pop();
+                    indices.pop();
+                }
+                alert(points);
+                // создаём буффер вершин
+                vertexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+                vertexBuffer.itemSize = 3;
+
+                // создаём буффер индексов
+                indexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+                gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+                indexBuffer.numberOfItems = indices.length;
+            }
+
+            // отрисовка объекта
+            function draw() {
+                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                gl.drawElements(gl.LINES, indexBuffer.numberOfItems, gl.UNSIGNED_SHORT, 0);
+            }
+
+            // настройка библиотеки
+            function setupWebGL() {
+                gl.clearColor(0.0, 0.0, 0.0, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                angle += 0.01;
+                gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+                mat4.perspective(pMatrix, 1.08, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
+                mat4.identity(mvMatrix);
+                mat4.translate(mvMatrix, mvMatrix, [0, 0, -2.0]);
+                mat4.rotate(mvMatrix, mvMatrix, angle, [0, 1, 0]);
+            }
+
+            // загрузка объектов
+            window.onload = function() {
+                var canvas = document.getElementById("canvas3D");
+                gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+                if (!gl) {
+                    alert("Данный браузер не поддерживает библиотеку WebGL");
+                }
+                gl.viewportWidth = canvas.width;
+                gl.viewportHeight = canvas.height;
+                initShaders();
+                initBuffers();
+
+                // запуск анимации
+                (function animloop() {
+                    setupWebGL();
+                    setMatrixUniforms();
+                    draw();
+                    requestAnimFrame(animloop, canvas);
+                })();
+            }
+
+            // настройка анимации
+            window.requestAnimFrame = (function() {
+                return window.requestAnimationFrame || window.webkitRequestAnimationFrame ||
+                 window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+                 function (callback, element) {
+                    return window.setTimeout(callback, 1000 / 60);
+                 }
+            })();
+        </script>
+        -->
+    </body>
 </html>
